@@ -3,3 +3,6 @@ dist
 venv
 .idea
 */__pycache__
+*.pyc
+*/storage/*
+!*/storage/force_dir_in_git.txt

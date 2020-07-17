@@ -1,22 +1,27 @@
 import os
 import platform
-import subprocess
 import sys
 import logging
-from threading import Thread
 from python_hosts import Hosts, HostsEntry
-from qt_log_handler import QLogHandler
+from ui.qt_log_handler import QLogHandler
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from ui.mainForm import Ui_Window
-from account_dialog import AddAccountDialog
-from service import server
+from ui.account_dialog import AddAccountDialog
 from utls import is_admin
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 q_log_handler = QLogHandler()
 logger.addHandler(q_log_handler)
+
+if getattr(sys, 'frozen', False):
+    # we are running in a bundle
+    bundle_dir = sys._MEIPASS
+else:
+    # we are running in a normal Python environment
+    bundle_dir = os.path.dirname(os.path.abspath(__file__))
+cwd = os.getcwd()
 
 
 class Window(QWidget, Ui_Window):
@@ -27,6 +32,7 @@ class Window(QWidget, Ui_Window):
         self.fake_server_thread = None
         self.show()
         self.stopServiceBtn.setEnabled(False)
+        self.start_fake_server()
 
     def connect_sig(self):
         q_log_handler.newRecord.connect(self.logMonitor.appendPlainText)
@@ -48,6 +54,11 @@ class Window(QWidget, Ui_Window):
 
     @pyqtSlot(bool)
     def on_startServiceBtn_clicked(self):
+
+        if platform.system() != 'Windows':
+            logger.error('只支持Windows系统')
+            return
+
         if not is_admin():
             box = QMessageBox()
             box.setText("请用管理员身份运行！")
@@ -55,9 +66,6 @@ class Window(QWidget, Ui_Window):
             box.exec()
             QCoreApplication.instance().quit()
             return
-
-        if self.fake_server_thread is None:
-            self.start_fake_server()
 
         self.stopServiceBtn.setEnabled(True)
         self.startServiceBtn.setEnabled(False)
@@ -70,27 +78,10 @@ class Window(QWidget, Ui_Window):
         self.stop_service()
 
     def start_fake_server(self):
-        logger.info('Start Fake Server')
-        if platform.system() == 'Windows':
-            NO_WINDOW = 0x08000000
-            pip = subprocess.Popen(
-                [sys.executable, 'service/server.py'],
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                shell=False,
-                creationflags=NO_WINDOW)
-
-        elif platform.system() == 'Darwin':
-            pip = subprocess.Popen(
-                [sys.executable, 'service/server.py'],
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                shell=False
-            )
-        else:
-            logger.error('System Not Supported')
+        # t = Thread(target=standalone.run)
+        # t.daemon = True
+        # t.start()
+        pass
 
     def edit_host(self, enable):
         hosts = Hosts()
@@ -108,7 +99,10 @@ class Window(QWidget, Ui_Window):
         event.accept()
 
     def stop_service(self):
-        logger.info('服务终止')
+        if self.fake_server_thread is not None:
+            self.fake_server_thread.terminate()
+            logger.info('服务终止')
+            self.fake_server_thread = None
         self.edit_host(enable=False)
 
 
