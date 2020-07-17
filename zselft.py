@@ -1,8 +1,8 @@
 import os
+import platform
+import subprocess
 import sys
 import logging
-import ctypes
-import fileinput
 from threading import Thread
 from python_hosts import Hosts, HostsEntry
 from qt_log_handler import QLogHandler
@@ -11,19 +11,12 @@ from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from ui.mainForm import Ui_Window
 from account_dialog import AddAccountDialog
 from service import server
+from utls import is_admin
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 q_log_handler = QLogHandler()
 logger.addHandler(q_log_handler)
-
-
-def isAdmin():
-    try:
-        is_admin = (os.getuid() == 0)
-    except AttributeError:
-        is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
-    return is_admin
 
 
 class Window(QWidget, Ui_Window):
@@ -55,12 +48,13 @@ class Window(QWidget, Ui_Window):
 
     @pyqtSlot(bool)
     def on_startServiceBtn_clicked(self):
-        if not isAdmin():
+        if not is_admin():
             box = QMessageBox()
             box.setText("请用管理员身份运行！")
             box.setStandardButtons(QMessageBox.Yes)
             box.exec()
             QCoreApplication.instance().quit()
+            return
 
         if self.fake_server_thread is None:
             self.start_fake_server()
@@ -77,9 +71,26 @@ class Window(QWidget, Ui_Window):
 
     def start_fake_server(self):
         logger.info('Start Fake Server')
-        self.fake_server_thread = Thread(target=server.run)
-        self.fake_server_thread.daemon = True
-        self.fake_server_thread.start()
+        if platform.system() == 'Windows':
+            NO_WINDOW = 0x08000000
+            pip = subprocess.Popen(
+                [sys.executable, 'service/server.py'],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                shell=False,
+                creationflags=NO_WINDOW)
+
+        elif platform.system() == 'Darwin':
+            pip = subprocess.Popen(
+                [sys.executable, 'service/server.py'],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                shell=False
+            )
+        else:
+            logger.error('System Not Supported')
 
     def edit_host(self, enable):
         hosts = Hosts()
