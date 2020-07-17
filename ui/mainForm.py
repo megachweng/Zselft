@@ -51,8 +51,6 @@ class Ui_Window(object):
         self.gridLayout.addWidget(self.addAccountBtn, 1, 1, 1, 1)
         self.AccountListWidget = QtWidgets.QListWidget(Window)
         self.AccountListWidget.setObjectName("AccountListWidget")
-        item = QtWidgets.QListWidgetItem()
-        self.AccountListWidget.addItem(item)
         self.gridLayout.addWidget(self.AccountListWidget, 0, 0, 1, 2)
         self.gridLayout_2.addLayout(self.gridLayout, 0, 0, 1, 2)
 
@@ -68,6 +66,4 @@ class Ui_Window(object):
         self.addAccountBtn.setText(_translate("Window", "+"))
         __sortingEnabled = self.AccountListWidget.isSortingEnabled()
         self.AccountListWidget.setSortingEnabled(False)
-        item = self.AccountListWidget.item(0)
-        item.setText(_translate("Window", "Easy.Deng"))
         self.AccountListWidget.setSortingEnabled(__sortingEnabled)

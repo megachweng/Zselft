@@ -1,15 +1,20 @@
 import os
+import pathlib
 import platform
+import shutil
 import sys
 import logging
 from threading import Thread
+
+import requests
+from PyQt5.QtGui import QPixmap, QIcon
 from python_hosts import Hosts, HostsEntry
 from ui.qt_log_handler import QLogHandler
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
-from PyQt5.QtCore import pyqtSlot, QCoreApplication
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QListWidgetItem
+from PyQt5.QtCore import pyqtSlot, QCoreApplication, QSize, Qt
 from ui.mainForm import Ui_Window
 from ui.account_dialog import AddAccountDialog
-from utls import is_admin, add_cert
+from utls import is_admin, add_cert, zwift_user_profile_interpreter, FileDialog
 
 import standalone
 
@@ -25,6 +30,7 @@ else:
     # we are running in a normal Python environment
     bundle_dir = os.path.dirname(os.path.abspath(__file__))
 cwd = os.getcwd()
+STORAGE_PATH = os.path.join(cwd, 'storage')
 
 
 class Window(QWidget, Ui_Window):
@@ -33,27 +39,77 @@ class Window(QWidget, Ui_Window):
         self.setupUi(self)
         self.connect_sig()
         self.fake_server_thread = None
+        self.zwift_folder = None
         self.show()
         self.stopServiceBtn.setEnabled(False)
         self.start_fake_server()
+        self.list_profiles()
+        self.load_config()
+
+    def load_config(self):
+        config_file = os.path.join(STORAGE_PATH,'config.ini')
+
+        self.zwift_folder = FileDialog()
 
     def connect_sig(self):
         q_log_handler.newRecord.connect(self.logMonitor.appendPlainText)
-        self.addAccountBtn.clicked.connect(self.add_account)
-        self.deleteAccountBtn.clicked.connect(self.del_account)
 
-    @pyqtSlot()
-    def add_account(self):
+    def list_profiles(self):
+        self.AccountListWidget.clear()
+        self.AccountListWidget.setIconSize(QSize(50, 50))
+        for _, dirs, _ in os.walk(STORAGE_PATH):
+            for profile_id in dirs:
+                file_path = os.path.join(STORAGE_PATH, profile_id, 'profile.bin')
+                if os.path.isfile(file_path):
+                    with open(file_path, 'rb') as fd:
+                        user_info = zwift_user_profile_interpreter(fd.read())
+
+                    with open(os.path.join(STORAGE_PATH, profile_id, 'avatar'), 'rb') as fp:
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(fp.read())
+                    icon = QIcon(pixmap)
+                    item = QListWidgetItem(icon, f'{user_info["first_name"]} {user_info["last_name"]}')
+                    item.setData(Qt.UserRole, str(user_info['uid']))
+                    self.AccountListWidget.addItem(item)
+
+    @pyqtSlot(bool)
+    def on_addAccountBtn_clicked(self):
         account_dialog = AddAccountDialog(parent=self)
         save_or_not = account_dialog.exec_()
         if save_or_not:
-            logger.info(account_dialog.zwiftUsernameEdit.text())
+            try:
+                account_dict = account_dialog.account_dict
+                p = pathlib.Path(os.path.join(STORAGE_PATH, str(account_dict['uid'])))
+                p.mkdir(parents=True, exist_ok=True)
+
+                # save profile.bin
+                with open((p / 'profile.bin'), 'wb') as f:
+                    f.write(account_dict['profile.bin'])
+                # save avatar
+                with open((p / 'avatar'), 'wb') as fp:
+                    fp.write(account_dict['avatar'])
+                # save strava_token.txt
+                with open((p / 'strava_token.txt'), 'w') as fp:
+                    fp.write(account_dict['strava_token.txt'])
+
+                # save garmin
+                garmin_username = account_dialog.garminUsernameEdit.text()
+                garmin_password = account_dialog.garminPasswordEdit.text()
+                if all([garmin_username, garmin_password]):
+                    with open((p / 'garmin_credentials.txt'), 'w') as fp:
+                        fp.write(garmin_username + "\n" + garmin_password)
+            except Exception as e:
+                logger.exception(e)
         else:
             logger.info('取消保存')
+        self.list_profiles()
 
-    @pyqtSlot()
-    def del_account(self):
-        logger.info('删除')
+    @pyqtSlot(bool)
+    def on_deleteAccountBtn_clicked(self):
+        item = self.AccountListWidget.currentIndex()
+        logger.info(item.data(Qt.UserRole))
+        shutil.rmtree(os.path.join(STORAGE_PATH, item.data(Qt.UserRole)))
+        self.list_profiles()
 
     @pyqtSlot(bool)
     def on_startServiceBtn_clicked(self):
@@ -73,7 +129,7 @@ class Window(QWidget, Ui_Window):
         self.stopServiceBtn.setEnabled(True)
         self.startServiceBtn.setEnabled(False)
         self.edit_host(enable=True)
-        add_cert()
+        add_cert(zwift_path=self.zwift_folder)
 
     @pyqtSlot(bool)
     def on_stopServiceBtn_clicked(self):
