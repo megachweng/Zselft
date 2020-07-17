@@ -2,13 +2,16 @@ import os
 import platform
 import sys
 import logging
+from threading import Thread
 from python_hosts import Hosts, HostsEntry
 from ui.qt_log_handler import QLogHandler
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from ui.mainForm import Ui_Window
 from ui.account_dialog import AddAccountDialog
-from utls import is_admin
+from utls import is_admin, add_cert
+
+import standalone
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -70,6 +73,7 @@ class Window(QWidget, Ui_Window):
         self.stopServiceBtn.setEnabled(True)
         self.startServiceBtn.setEnabled(False)
         self.edit_host(enable=True)
+        add_cert()
 
     @pyqtSlot(bool)
     def on_stopServiceBtn_clicked(self):
@@ -78,9 +82,9 @@ class Window(QWidget, Ui_Window):
         self.stop_service()
 
     def start_fake_server(self):
-        # t = Thread(target=standalone.run)
-        # t.daemon = True
-        # t.start()
+        t = Thread(target=standalone.start)
+        t.daemon = True
+        t.start()
         pass
 
     def edit_host(self, enable):

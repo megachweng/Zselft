@@ -1,0 +1,38 @@
+<html>
+<head>
+    <title>Loading Zwift</title>
+</head>
+<body>
+<h1>zoffline Launcher</h1>
+
+<form method="POST" action="/start-zwift">
+    <table border=0 cellpadding=15>
+	<tr><td><p>Select profile:</p>
+    <select name="id">
+    {% for profile in profiles %}
+        <option value="{{ profile.id }}">{{ profile.first_name + ' ' + profile.last_name }}</option>
+    {% endfor %}
+    </select></td>
+    <td><p>Select map (optional):</p>
+    <select name="map">
+        <option value="CALENDAR">Calendar</option>
+        <option value="FRANCE">France</option>
+        <option value="INNSBRUCK">Innsbruck</option>
+        <option value="LONDON">London</option>
+        <option value="NEWYORK">New York</option>
+        <option value="PARIS">Paris</option>
+        <option value="RICHMOND">Richmond</option>
+        <option value="WATOPIA">Watopia</option>
+        <option value="YORKSHIRE">Yorkshire</option>
+    </select></td></tr>
+    <tr><td><button type="submit">Start Zwift</button></td></tr>
+    </table>
+</form>
+
+</br>
+To automatically launch Zwift and skip this step create a file called "auto_launch.txt" inside zoffline's storage directory.
+</br>
+<b>Warning:</b> If there's a pending Zwift update that zoffline supports, auto launching will prevent that update from being installed and Zwift will not behave nicely. Always ensure zoffline is disabled to apply updates in advance if auto launching.
+
+</body>
+</html>
