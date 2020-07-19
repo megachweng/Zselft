@@ -1,36 +1,27 @@
+import json
 import os
 import pathlib
 import platform
 import shutil
 import sys
 import logging
+from xml.etree import ElementTree
 from threading import Thread
-
-import requests
 from PyQt5.QtGui import QPixmap, QIcon
-from python_hosts import Hosts, HostsEntry
-from ui.qt_log_handler import QLogHandler
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QListWidgetItem
 from PyQt5.QtCore import pyqtSlot, QCoreApplication, QSize, Qt
+from python_hosts import Hosts, HostsEntry
+from ui.qt_log_handler import QLogHandler
 from ui.mainForm import Ui_Window
 from ui.account_dialog import AddAccountDialog
 from utls import is_admin, add_cert, zwift_user_profile_interpreter, FileDialog
-
+from const import LATEST_TESTED_ZWIFT_VERSION, STORAGE_PATH, bundle_dir
 import standalone
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 q_log_handler = QLogHandler()
 logger.addHandler(q_log_handler)
-
-if getattr(sys, 'frozen', False):
-    # we are running in a bundle
-    bundle_dir = sys._MEIPASS
-else:
-    # we are running in a normal Python environment
-    bundle_dir = os.path.dirname(os.path.abspath(__file__))
-cwd = os.getcwd()
-STORAGE_PATH = os.path.join(cwd, 'storage')
 
 
 class Window(QWidget, Ui_Window):
@@ -39,17 +30,39 @@ class Window(QWidget, Ui_Window):
         self.setupUi(self)
         self.connect_sig()
         self.fake_server_thread = None
-        self.zwift_folder = None
+        self.zwift_folder = os.path.expanduser('~')
         self.show()
         self.stopServiceBtn.setEnabled(False)
         self.start_fake_server()
         self.list_profiles()
         self.load_config()
+        self.check_zwift_version()
 
     def load_config(self):
-        config_file = os.path.join(STORAGE_PATH,'config.ini')
+        config_file = os.path.join(STORAGE_PATH, 'config.json')
+        if os.path.exists(config_file):
+            with open(config_file) as fd:
+                config = json.load(fd)
+                self.zwift_folder = config['zwift_path']
 
-        self.zwift_folder = FileDialog()
+        while not os.path.exists(os.path.join(self.zwift_folder, 'data', 'cacert.pem')):
+            self.zwift_folder = FileDialog()
+
+        with open(config_file, 'w') as fd:
+            json.dump({'zwift_path': self.zwift_folder}, fd)
+
+    def check_zwift_version(self):
+        zwift_version_xml = os.path.join(self.zwift_folder, 'Zwift_ver_cur.xml')
+        tree = ElementTree.parse(zwift_version_xml)
+        root = tree.getroot()
+        version = root.attrib.get('version')
+        logger.info(f'ZWIFT版本:{version}')
+        if version == LATEST_TESTED_ZWIFT_VERSION:
+            return
+        else:
+            shutil.copyfile(zwift_version_xml,
+                            os.path.join(bundle_dir, 'cdn', 'gameassets', 'Zwift_Updates_Root', 'Zwift_ver_cur.xml'))
+            logger.info('Copy zwift version file')
 
     def connect_sig(self):
         q_log_handler.newRecord.connect(self.logMonitor.appendPlainText)
@@ -137,13 +150,14 @@ class Window(QWidget, Ui_Window):
         self.startServiceBtn.setEnabled(True)
         self.stop_service()
 
-    def start_fake_server(self):
+    @staticmethod
+    def start_fake_server():
         t = Thread(target=standalone.start)
         t.daemon = True
         t.start()
-        pass
 
-    def edit_host(self, enable):
+    @staticmethod
+    def edit_host(enable):
         hosts = Hosts()
         if enable:
             entry = HostsEntry(entry_type='ipv4', address='127.0.0.1',
