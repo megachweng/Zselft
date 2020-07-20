@@ -22,7 +22,7 @@ def add_cert(zwift_path: pathlib.Path):
     logger.info(f'zwift:{zwift_pem_path}')
 
     with Popen(
-            ['certutil.exe', '-importpfx', 'Root', cert_path],
+            ['certutil.exe', '-importpfx', 'Root', str(cert_path)],
             close_fds=True,
             shell=True,
             stdin=PIPE,
@@ -35,7 +35,7 @@ def add_cert(zwift_path: pathlib.Path):
         logger.error(errs)
 
     with Popen(
-            ['type', pem_path, '>>', zwift_pem_path],
+            ['type', str(pem_path), '>>', str(zwift_pem_path)],
             close_fds=True,
             shell=True,
             stdin=PIPE,
@@ -66,6 +66,6 @@ def choose_zwift_path(path: pathlib.Path):
     if not (path / 'data/cacert.pem').is_file():
         dialog = QFileDialog()
         choose_path = pathlib.Path(dialog.getExistingDirectory(dialog, '选择Zwift的安装目录！'))
-        choose_zwift_path(choose_path)
+        return choose_zwift_path(choose_path)
     else:
         return path

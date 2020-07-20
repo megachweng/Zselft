@@ -22,6 +22,17 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 q_log_handler = QLogHandler()
 logger.addHandler(q_log_handler)
+rfd = logging.FileHandler('zselft.log')
+rfd.setLevel(logging.DEBUG)
+logger.addHandler(rfd)
+
+
+def fatal_error(exc_type, exc_value, exc_traceback):
+    logger.exception(exc_value, exc_info=(exc_type, exc_value, exc_traceback))
+
+
+# 未知异常日志
+sys.excepthook = fatal_error
 
 
 class Window(QWidget, Ui_Window):
@@ -42,15 +53,15 @@ class Window(QWidget, Ui_Window):
         if CONFIG_FILE.is_file():
             with open(CONFIG_FILE) as fd:
                 config = json.load(fd)
-                self.zwift_path = config['zwift_path']
+                self.zwift_path = pathlib.Path(config['zwift_path'])
 
         self.zwift_path = choose_zwift_path(self.zwift_path)
 
-        with open(self.zwift_path, 'w') as fd:
-            json.dump({'zwift_path': self.zwift_path}, fd)
+        with open(CONFIG_FILE, 'w') as fd:
+            json.dump({'zwift_path': str(self.zwift_path)}, fd)
 
     def check_zwift_version(self):
-        zwift_version_xml = os.path.join(self.zwift_folder, 'Zwift_ver_cur.xml')
+        zwift_version_xml = os.path.join(self.zwift_path, 'Zwift_ver_cur.xml')
         tree = ElementTree.parse(zwift_version_xml)
         root = tree.getroot()
         version = root.attrib.get('version')
@@ -86,7 +97,7 @@ class Window(QWidget, Ui_Window):
     def on_addAccountBtn_clicked(self):
         account_dialog = AddAccountDialog(parent=self)
         save_or_not = account_dialog.exec_()
-        if save_or_not:
+        if save_or_not and account_dialog.account_dict.get('uid', False):
             try:
                 account_dict = account_dialog.account_dict
                 p = STORAGE_DIR_PATH / str(account_dict['uid'])
@@ -118,7 +129,9 @@ class Window(QWidget, Ui_Window):
 
     @pyqtSlot(bool)
     def on_deleteAccountBtn_clicked(self):
-        item = self.AccountListWidget.currentIndex()
+        item = self.AccountListWidget.currentItem()
+        if not item:
+            return
         logger.info(item.data(Qt.UserRole))
         shutil.rmtree(STORAGE_DIR_PATH / item.data(Qt.UserRole))
         # refresh listwidget
@@ -141,7 +154,7 @@ class Window(QWidget, Ui_Window):
 
         self.stopServiceBtn.setEnabled(True)
         self.startServiceBtn.setEnabled(False)
-        add_cert(zwift_path=self.zwift_folder)
+        add_cert(zwift_path=self.zwift_path)
         self.edit_host(enable=True)
 
     @pyqtSlot(bool)

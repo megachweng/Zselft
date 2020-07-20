@@ -68,6 +68,8 @@ class AddAccountDialog(QDialog, Ui_account):
         client = Client()
         url = client.authorization_url(
             client_id=STRAVA_CLIENT_ID,
+            approval_prompt="force",
+            scope="activity:write",
             redirect_uri='http://127.0.0.1:6734/authorization')
         QDesktopServices.openUrl(QUrl(url))
 
