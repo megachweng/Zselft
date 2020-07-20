@@ -14,8 +14,8 @@ from python_hosts import Hosts, HostsEntry
 from ui.qt_log_handler import QLogHandler
 from ui.mainForm import Ui_Window
 from ui.account_dialog import AddAccountDialog
-from utls import is_admin, add_cert, zwift_user_profile_interpreter, FileDialog
-from const import LATEST_TESTED_ZWIFT_VERSION, STORAGE_PATH, bundle_dir
+from utls import is_admin, add_cert, zwift_user_profile_interpreter, choose_zwift_path
+from const import LATEST_TESTED_ZWIFT_VERSION, CONFIG_FILE, BUNDLE_DIR, STORAGE_DIR_PATH
 import standalone
 
 logger = logging.getLogger()
@@ -30,7 +30,7 @@ class Window(QWidget, Ui_Window):
         self.setupUi(self)
         self.connect_sig()
         self.fake_server_thread = None
-        self.zwift_folder = os.path.expanduser('~')
+        self.zwift_path = pathlib.Path('~').expanduser()
         self.show()
         self.stopServiceBtn.setEnabled(False)
         self.start_fake_server()
@@ -39,17 +39,15 @@ class Window(QWidget, Ui_Window):
         self.check_zwift_version()
 
     def load_config(self):
-        config_file = os.path.join(STORAGE_PATH, 'config.json')
-        if os.path.exists(config_file):
-            with open(config_file) as fd:
+        if CONFIG_FILE.is_file():
+            with open(CONFIG_FILE) as fd:
                 config = json.load(fd)
-                self.zwift_folder = config['zwift_path']
+                self.zwift_path = config['zwift_path']
 
-        while not os.path.exists(os.path.join(self.zwift_folder, 'data', 'cacert.pem')):
-            self.zwift_folder = FileDialog()
+        self.zwift_path = choose_zwift_path(self.zwift_path)
 
-        with open(config_file, 'w') as fd:
-            json.dump({'zwift_path': self.zwift_folder}, fd)
+        with open(self.zwift_path, 'w') as fd:
+            json.dump({'zwift_path': self.zwift_path}, fd)
 
     def check_zwift_version(self):
         zwift_version_xml = os.path.join(self.zwift_folder, 'Zwift_ver_cur.xml')
@@ -60,8 +58,7 @@ class Window(QWidget, Ui_Window):
         if version == LATEST_TESTED_ZWIFT_VERSION:
             return
         else:
-            shutil.copyfile(zwift_version_xml,
-                            os.path.join(bundle_dir, 'cdn', 'gameassets', 'Zwift_Updates_Root', 'Zwift_ver_cur.xml'))
+            shutil.copyfile(zwift_version_xml, BUNDLE_DIR / 'cdn/gameassets/Zwift_Updates_Root/Zwift_ver_cur.xml')
             logger.info('Copy zwift version file')
 
     def connect_sig(self):
@@ -70,16 +67,16 @@ class Window(QWidget, Ui_Window):
     def list_profiles(self):
         self.AccountListWidget.clear()
         self.AccountListWidget.setIconSize(QSize(50, 50))
-        for _, dirs, _ in os.walk(STORAGE_PATH):
-            for profile_id in dirs:
-                file_path = os.path.join(STORAGE_PATH, profile_id, 'profile.bin')
-                if os.path.isfile(file_path):
-                    with open(file_path, 'rb') as fd:
-                        user_info = zwift_user_profile_interpreter(fd.read())
+        for d in [x for x in STORAGE_DIR_PATH.iterdir() if x.is_dir()]:
+            file_path = d / 'profile.bin'
+            if file_path.is_file():
+                with open(file_path, 'rb') as fd:
+                    user_info = zwift_user_profile_interpreter(fd.read())
 
-                    with open(os.path.join(STORAGE_PATH, profile_id, 'avatar'), 'rb') as fp:
-                        pixmap = QPixmap()
-                        pixmap.loadFromData(fp.read())
+                # download avatar
+                with open(d / 'avatar', 'rb') as fp:
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(fp.read())
                     icon = QIcon(pixmap)
                     item = QListWidgetItem(icon, f'{user_info["first_name"]} {user_info["last_name"]}')
                     item.setData(Qt.UserRole, str(user_info['uid']))
@@ -92,7 +89,7 @@ class Window(QWidget, Ui_Window):
         if save_or_not:
             try:
                 account_dict = account_dialog.account_dict
-                p = pathlib.Path(os.path.join(STORAGE_PATH, str(account_dict['uid'])))
+                p = STORAGE_DIR_PATH / str(account_dict['uid'])
                 p.mkdir(parents=True, exist_ok=True)
 
                 # save profile.bin
@@ -115,13 +112,16 @@ class Window(QWidget, Ui_Window):
                 logger.exception(e)
         else:
             logger.info('取消保存')
+
+        # refresh listwidget
         self.list_profiles()
 
     @pyqtSlot(bool)
     def on_deleteAccountBtn_clicked(self):
         item = self.AccountListWidget.currentIndex()
         logger.info(item.data(Qt.UserRole))
-        shutil.rmtree(os.path.join(STORAGE_PATH, item.data(Qt.UserRole)))
+        shutil.rmtree(STORAGE_DIR_PATH / item.data(Qt.UserRole))
+        # refresh listwidget
         self.list_profiles()
 
     @pyqtSlot(bool)
@@ -141,8 +141,8 @@ class Window(QWidget, Ui_Window):
 
         self.stopServiceBtn.setEnabled(True)
         self.startServiceBtn.setEnabled(False)
-        self.edit_host(enable=True)
         add_cert(zwift_path=self.zwift_folder)
+        self.edit_host(enable=True)
 
     @pyqtSlot(bool)
     def on_stopServiceBtn_clicked(self):
@@ -173,10 +173,6 @@ class Window(QWidget, Ui_Window):
         event.accept()
 
     def stop_service(self):
-        if self.fake_server_thread is not None:
-            self.fake_server_thread.terminate()
-            logger.info('服务终止')
-            self.fake_server_thread = None
         self.edit_host(enable=False)
 
 

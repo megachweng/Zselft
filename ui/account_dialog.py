@@ -11,7 +11,7 @@ from scripts.get_profile import query_player_profile, login, logout
 from scripts import strava_oauth_server
 from ui.accountForm import Ui_account
 from utls import zwift_user_profile_interpreter
-from const import STORAGE_PATH, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
+from const import STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
 from stravalib import Client
 
 logger = logging.getLogger()
@@ -23,7 +23,7 @@ class AddAccountDialog(QDialog, Ui_account):
         self.setupUi(self)
         self.getZwiftProfileBtn.clicked.connect(self.get_zwift_profile)
         self.authStravaBtn.clicked.connect(self.auth_strava)
-        self.account_dict = {'uid': None}
+        self.account_dict = dict()
 
     def get_zwift_profile(self):
         self.getZwiftProfileBtn.setEnabled(False)
@@ -42,8 +42,6 @@ class AddAccountDialog(QDialog, Ui_account):
             user_info = zwift_user_profile_interpreter(profile)
             self.account_dict['uid'] = user_info['uid']
 
-
-
             if user_info['avatar']:
                 rsp = requests.get(user_info['avatar'])
                 self.account_dict['avatar'] = rsp.content
@@ -60,7 +58,7 @@ class AddAccountDialog(QDialog, Ui_account):
 
     def auth_strava(self):
 
-        if self.account_dict['uid'] is None:
+        if self.account_dict.get('uid', None) is None:
             logger.warning('必须先获取Zwift数据！')
             return
         strava_oauth_server.bridge.token_got.connect(self.format_strava_token)

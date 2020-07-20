@@ -8,6 +8,7 @@ import threading
 import time
 import csv
 from datetime import datetime
+
 if sys.version_info[0] > 2:
     import socketserver
     from http.server import SimpleHTTPRequestHandler
@@ -49,14 +50,18 @@ start_rt = 0
 update_freq = 3
 timeout = 10
 
+
 def roadID(state):
     return (state.f20 & 0xff00) >> 8
+
 
 def isForward(state):
     return (state.f19 & 4) != 0
 
+
 def course(state):
     return (state.f19 & 0xff0000) >> 16
+
 
 def saveGhost(player_id, name):
     if not player_id: return
@@ -70,6 +75,7 @@ def saveGhost(player_id, name):
     f = '%s/%s-%s.bin' % (folder, time.strftime("%Y-%m-%d-%H-%M-%S"), unquote(name))
     with open(f, 'wb') as fd:
         fd.write(rec.SerializeToString())
+
 
 def loadGhosts(player_id, state):
     global play
@@ -85,7 +91,8 @@ def loadGhosts(player_id, state):
                 with open(os.path.join(root, f), 'rb') as fd:
                     g = udp_node_msgs_pb2.Ghost()
                     g.ParseFromString(fd.read())
-                    if course(g.states[0]) == course(state) and roadID(g.states[0]) == roadID(state) and isForward(g.states[0]) == isForward(state):
+                    if course(g.states[0]) == course(state) and roadID(g.states[0]) == roadID(state) and isForward(
+                            g.states[0]) == isForward(state):
                         h = play.ghosts.add()
                         h.CopyFrom(g)
                         s.append(g.states[0].roadTime)
@@ -95,14 +102,17 @@ def loadGhosts(player_id, state):
     if os.path.isfile(sl_file):
         with open(sl_file, 'r') as fd:
             sl = [tuple(line) for line in csv.reader(fd)]
-            rt = [t for t in sl if t[0] == str(course(state)) and t[1] == str(roadID(state)) and (t[2] == str(isForward(state)) or not t[2])]
+            rt = [t for t in sl if t[0] == str(course(state)) and t[1] == str(roadID(state)) and (
+                        t[2] == str(isForward(state)) or not t[2])]
             if rt:
                 start_road = int(rt[0][3])
                 start_rt = int(rt[0][4])
     if not start_rt:
         s.append(state.roadTime)
-        if isForward(state): start_rt = max(s)
-        else: start_rt = min(s)
+        if isForward(state):
+            start_rt = max(s)
+        else:
+            start_rt = min(s)
     for g in play.ghosts:
         while roadID(g.states[0]) != start_road:
             del g.states[0]
@@ -123,6 +133,7 @@ def sigint_handler(num, frame):
     udpserver.shutdown()
     udpserver.server_close()
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, sigint_handler)
 
@@ -147,7 +158,8 @@ class CDNHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/xml')
             self.end_headers()
-            output = '<MapSchedule><appointments><appointment map="%s" start="%s"/></appointments><VERSION>1</VERSION></MapSchedule>' % (MAP_OVERRIDE, datetime.now().strftime("%Y-%m-%dT00:01-04"))
+            output = '<MapSchedule><appointments><appointment map="%s" start="%s"/></appointments><VERSION>1</VERSION></MapSchedule>' % (
+            MAP_OVERRIDE, datetime.now().strftime("%Y-%m-%dT00:01-04"))
             self.wfile.write(output.encode())
             MAP_OVERRIDE = None
             return
@@ -173,6 +185,7 @@ class CDNHandler(SimpleHTTPRequestHandler):
             return
 
         SimpleHTTPRequestHandler.do_GET(self)
+
 
 class TCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -236,6 +249,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.request.sendall(payload)
             except:
                 break
+
 
 class UDPHandler(socketserver.BaseRequestHandler):
     def handle(self):

@@ -1,6 +1,6 @@
 from stravalib import Client
 from flask import Flask, request
-from const import STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STORAGE_PATH
+from const import STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
