@@ -1,21 +1,21 @@
 <html>
 <head>
-    <title>Loading Zwift</title>
+    <title>加载Zwift</title>
 </head>
 <body>
-<h1>zoffline Launcher</h1>
+<h1>Zwift自闭欢乐版({{zselft_version}})</h1>
 
 <form method="POST" action="/start-zwift">
     <table border=0 cellpadding=15>
-	<tr><td><p>Select profile:</p>
+	<tr><td><p>选择用户:</p>
     <select name="id">
     {% for profile in profiles %}
         <option value="{{ profile.id }}">{{ profile.first_name + ' ' + profile.last_name }}</option>
     {% endfor %}
     </select></td>
-    <td><p>Select map (optional):</p>
+    <td><p>选择地图 (可选):</p>
     <select name="map">
-        <option value="CALENDAR">Calendar</option>
+        <option value="CALENDAR">随机</option>
         <option value="FRANCE">France</option>
         <option value="INNSBRUCK">Innsbruck</option>
         <option value="LONDON">London</option>
@@ -25,14 +25,12 @@
         <option value="WATOPIA">Watopia</option>
         <option value="YORKSHIRE">Yorkshire</option>
     </select></td></tr>
-    <tr><td><button type="submit">Start Zwift</button></td></tr>
+    <tr><td><button type="submit">开始自闭骑行</button></td></tr>
     </table>
 </form>
 
-</br>
-To automatically launch Zwift and skip this step create a file called "auto_launch.txt" inside zoffline's storage directory.
-</br>
-<b>Warning:</b> If there's a pending Zwift update that zoffline supports, auto launching will prevent that update from being installed and Zwift will not behave nicely. Always ensure zoffline is disabled to apply updates in advance if auto launching.
-
+<h3>
+无需联网、无需充值、等级可调、汗水金币无限，给你无尽的快乐
+</h3>
 </body>
 </html>

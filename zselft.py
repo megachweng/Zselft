@@ -25,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('[%(levelname)s][%(asctime)s] %(message)s', '%d/%m/%Y %H:%M:%S')
 
 q_log_handler = QLogHandler()
-q_log_handler.setLevel(logging.WARNING)
+q_log_handler.setLevel(logging.INFO)
 file_handler = RotatingFileHandler('zselft.log', maxBytes=3 * 10 ** 6, backupCount=10)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
@@ -51,10 +51,10 @@ class Window(QWidget, Ui_Window):
         self.zwift_path = pathlib.Path('~').expanduser()
         self.show()
         self.stopServiceBtn.setEnabled(False)
-        # self.start_fake_server()
+        self.start_fake_server()
         self.list_profiles()
-        # self.load_config()
-        # self.check_zwift_version()
+        self.load_config()
+        self.check_zwift_version()
 
     def load_config(self):
         if CONFIG_FILE.is_file():

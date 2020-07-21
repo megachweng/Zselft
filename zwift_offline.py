@@ -822,9 +822,10 @@ def auth_rb():
 @app.route('/auth/realms/zwift/tokens/registrations', methods=['GET'])  # Called by Mac, but not Windows
 @app.route('/ride', methods=['GET'])
 def launch_zwift():
+    from const import ZSELFT_VERSION
     # Zwift client has switched to calling https://launcher.zwift.com/launcher/ride
     if request.path != "/ride" and not os.path.exists(AUTOLAUNCH_FILE):
-        return render_template("embed-noauto.html", profiles=profiles)
+        return render_template("embed-noauto.html", profiles=profiles,zselft_version=ZSELFT_VERSION)
     else:
         return redirect("http://zwift/?code=zwift_refresh_token%s" % REFRESH_TOKEN, 302)
 

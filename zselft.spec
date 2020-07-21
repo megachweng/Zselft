@@ -6,7 +6,7 @@ import sys
 sys.modules['FixTk'] = None
 
 a = Analysis(['zselft.py'],
-             pathex=['/home/alexvh/Code/zoffline'],
+             pathex=['/home/megachweng/PycharmProjects/zselft'],
              binaries=[],
              datas=[('ssl/*', 'ssl'), ('initialize_db.sql', '.')],
              hiddenimports=[],
@@ -33,4 +33,4 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude="vcruntime140.dll",
           runtime_tmpdir=None,
-          console=True )
+          console=False )

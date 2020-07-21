@@ -17,9 +17,9 @@ def add_cert(zwift_path: pathlib.Path):
     pem_path = BUNDLE_DIR / 'ssl/cert-zwift-com.pem'
     zwift_pem_path = zwift_path / 'data/cacert.pem'
     logger.info('添加证书')
-    logger.info(f'pem:{pem_path}')
-    logger.info(f'p12:{cert_path}')
-    logger.info(f'zwift:{zwift_pem_path}')
+    logger.debug(f'pem:{pem_path}')
+    logger.debug(f'p12:{cert_path}')
+    logger.debug(f'zwift:{zwift_pem_path}')
 
     with Popen(
             ['certutil.exe', '-importpfx', 'Root', str(cert_path)],
@@ -31,8 +31,10 @@ def add_cert(zwift_path: pathlib.Path):
             universal_newlines=True
     ) as proc:
         outs, errs = proc.communicate()
-        logger.info(outs)
-        logger.error(errs)
+        if outs:
+            logger.info(outs)
+        if errs:
+            logger.error(errs)
 
     with Popen(
             ['type', str(pem_path), '>>', str(zwift_pem_path)],
@@ -44,8 +46,10 @@ def add_cert(zwift_path: pathlib.Path):
             universal_newlines=True
     ) as proc:
         outs, errs = proc.communicate()
-        logger.info(outs)
-        logger.error(errs)
+        if outs:
+            logger.info(outs)
+        if errs:
+            logger.error(errs)
 
 
 def zwift_user_profile_interpreter(profile_bytes):
