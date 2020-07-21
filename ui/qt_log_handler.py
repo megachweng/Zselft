@@ -9,7 +9,7 @@ class QLogHandler(QObject, logging.Handler):
         super().__init__(parent)
         super(logging.Handler).__init__()
 
-        formatter = Formatter('[%(asctime)s][%(levelname)s] -- %(message)s - (%(name)s)', '%d/%m/%Y %H:%M:%S')
+        formatter = Formatter('[%(levelname)s][%(asctime)s] %(message)s', '%d/%m/%Y %H:%M:%S')
         self.setFormatter(formatter)
         self.setLevel(logging.DEBUG)
 

@@ -5,6 +5,7 @@ import platform
 import shutil
 import sys
 import logging
+from logging.handlers import RotatingFileHandler
 from xml.etree import ElementTree
 from threading import Thread
 from PyQt5.QtGui import QPixmap, QIcon
@@ -14,17 +15,23 @@ from python_hosts import Hosts, HostsEntry
 from ui.qt_log_handler import QLogHandler
 from ui.mainForm import Ui_Window
 from ui.account_dialog import AddAccountDialog
+from ui.profile_editor import ProfileEditor
 from utls import is_admin, add_cert, zwift_user_profile_interpreter, choose_zwift_path
 from const import LATEST_TESTED_ZWIFT_VERSION, CONFIG_FILE, BUNDLE_DIR, STORAGE_DIR_PATH
 import standalone
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('[%(levelname)s][%(asctime)s] %(message)s', '%d/%m/%Y %H:%M:%S')
+
 q_log_handler = QLogHandler()
+q_log_handler.setLevel(logging.WARNING)
+file_handler = RotatingFileHandler('zselft.log', maxBytes=3 * 10 ** 6, backupCount=10)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
 logger.addHandler(q_log_handler)
-rfd = logging.FileHandler('zselft.log')
-rfd.setLevel(logging.DEBUG)
-logger.addHandler(rfd)
+logger.addHandler(file_handler)
 
 
 def fatal_error(exc_type, exc_value, exc_traceback):
@@ -44,10 +51,10 @@ class Window(QWidget, Ui_Window):
         self.zwift_path = pathlib.Path('~').expanduser()
         self.show()
         self.stopServiceBtn.setEnabled(False)
-        self.start_fake_server()
+        # self.start_fake_server()
         self.list_profiles()
-        self.load_config()
-        self.check_zwift_version()
+        # self.load_config()
+        # self.check_zwift_version()
 
     def load_config(self):
         if CONFIG_FILE.is_file():
@@ -74,6 +81,12 @@ class Window(QWidget, Ui_Window):
 
     def connect_sig(self):
         q_log_handler.newRecord.connect(self.logMonitor.appendPlainText)
+        self.AccountListWidget.itemDoubleClicked.connect(self.edit_profile)
+
+    def edit_profile(self, item):
+        zwift_uid = item.data(Qt.UserRole)
+        profile_editor = ProfileEditor(zwift_uid=zwift_uid, parent=self)
+        profile_editor.exec_()
 
     def list_profiles(self):
         self.AccountListWidget.clear()
