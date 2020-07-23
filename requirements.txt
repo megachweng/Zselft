@@ -21,12 +21,13 @@ PyQt5-stubs==5.14.2.2
 python-dateutil==2.8.1
 python-hosts==1.0.0
 pytz==2020.1
-pywin32==228
-pywin32-ctypes==0.2.0
+# pywin32==228
+# pywin32-ctypes==0.2.0
 requests==2.24.0
 six==1.15.0
 stravalib==0.10.2
 units==0.7
 urllib3==1.25.9
 Werkzeug==1.0.1
-win-inet-pton==1.1.0
+# win-inet-pton==1.1.0
+pynput==1.6.8

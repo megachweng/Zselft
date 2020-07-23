@@ -1,6 +1,8 @@
 import pathlib
 import sys
 import os
+from pynput.keyboard import Key
+from enum import Enum
 
 if getattr(sys, 'frozen', False):
     # we are running in a bundle
@@ -22,3 +24,35 @@ XP_LEVEL = [
     400000, 420000, 440000, 460000, 480000, 500000
 ]
 ZSELFT_VERSION = 'RC1'
+
+
+class ZwiftShortCutsEnum(Enum):
+    VIEW_DEFAULT = '1'
+    VIEW_THIRD_PERSION = '2'
+    VIEW_FIRST_PERSION = '3'
+    VIEW_SIDE = '4'
+    VIEW_REAR = '5'
+    VIEW_FROM = '6'
+    VIEW_SPECTATOR = '7'
+    VIEW_COPTER = '8'
+    VIEW_BIRD = '9'
+    VIEW_DRONE = '0'
+    VIEW_ZOOM_IN = '+'
+    VIEW_ZOOM_OUT = '-'
+
+    SCREEN_SHOOT = Key.f10
+    DEVICE_PAIRING = 'a'
+    WORKOUT_SELECTION = 'e'
+    TOGGLE_WH_GRAPH = 'g'
+    CUSTOMIZATION_WINDOW = 't'
+    INCREASE_INTENSITY = Key.page_up
+    DECREASE_INTENSITY = Key.page_down
+    SKIP_WORKOUT_BLOCK = Key.tab
+
+    ARROW_UP = Key.up
+    ARROW_DOWN = Key.down
+    ARROW_LEFT = Key.left
+    ARROW_RIGHT = Key.right
+
+    END_RIDE_SCREEN = Key.esc
+    POWER_UPS = Key.space

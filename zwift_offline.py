@@ -14,6 +14,11 @@ from copy import copy
 from datetime import timedelta
 from io import BytesIO
 from shutil import copyfile
+from pynput.keyboard import Controller
+
+from const import ZwiftShortCutsEnum
+
+keyboard = Controller()
 
 if sys.version_info[0] > 2:
     from urllib.parse import quote
@@ -36,7 +41,6 @@ import protobuf.world_pb2 as world_pb2
 import protobuf.zfiles_pb2 as zfiles_pb2
 import protobuf.hash_seeds_pb2 as hash_seeds_pb2
 
-
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger('zoffline')
 logger.setLevel(logging.WARN)
@@ -44,6 +48,7 @@ logger.setLevel(logging.WARN)
 if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.0.14393':
     # Fix ANSI color in Windows 10 version 10.0.14393 (Windows Anniversary Update)
     import ctypes
+
     kernel32 = ctypes.windll.kernel32
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
@@ -76,8 +81,8 @@ from tokens import *
 ENABLEGHOSTS_FILE = "%s/enable_ghosts.txt" % STORAGE_DIR
 
 # Android uses https for cdn
-app = Flask(__name__, static_folder='%s/cdn/gameassets' % SCRIPT_DIR, static_url_path='/gameassets', template_folder='%s/cdn/static/web/launcher' % SCRIPT_DIR)
-
+app = Flask(__name__, static_folder='%s/cdn/gameassets' % SCRIPT_DIR, static_url_path='/gameassets',
+            template_folder='%s/cdn/static/web/launcher' % SCRIPT_DIR)
 
 ####
 # Set up protobuf_to_dict call map
@@ -87,7 +92,6 @@ type_callable_map[FieldDescriptor.TYPE_BYTES] = str
 # sqlite doesn't support uint64 so make them strings
 type_callable_map[FieldDescriptor.TYPE_UINT64] = str
 
-
 profiles = list()
 selected_profile = 1000
 
@@ -96,7 +100,7 @@ def insert_protobuf_into_db(table_name, msg):
     cur = g.db.cursor()
     msg_dict = protobuf_to_dict(msg, type_callable_map=type_callable_map)
     columns = ', '.join(list(msg_dict.keys()))
-    placeholders = ':'+', :'.join(list(msg_dict.keys()))
+    placeholders = ':' + ', :'.join(list(msg_dict.keys()))
     query = 'INSERT INTO %s (%s) VALUES (%s)' % (table_name, columns, placeholders)
     cur.execute(query, msg_dict)
     g.db.commit()
@@ -114,7 +118,7 @@ def update_protobuf_in_db(table_name, msg, id):
     cur = g.db.cursor()
     msg_dict = protobuf_to_dict(msg, type_callable_map=type_callable_map)
     columns = ', '.join(list(msg_dict.keys()))
-    placeholders = ':'+', :'.join(list(msg_dict.keys()))
+    placeholders = ':' + ', :'.join(list(msg_dict.keys()))
     setters = ', '.join('{}=:{}'.format(key, key) for key in msg_dict)
     query = 'UPDATE %s SET %s WHERE id=%s' % (table_name, setters, id)
     cur.execute(query, msg_dict)
@@ -149,7 +153,7 @@ def get_id(table_name):
 
 
 def world_time():
-    return int(time.time()-1414016075)*1000
+    return int(time.time() - 1414016075) * 1000
 
 
 @app.route('/api/auth', methods=['GET'])
@@ -256,17 +260,19 @@ def api_profiles_me():
         if profile.id != selected_profile:
             logger.warn('player_id is different from profile directory, updating database...')
             cur = g.db.cursor()
-            cur.execute('UPDATE activity SET player_id = ? WHERE player_id = ?', (str(selected_profile), str(profile.id)))
+            cur.execute('UPDATE activity SET player_id = ? WHERE player_id = ?',
+                        (str(selected_profile), str(profile.id)))
             cur.execute('UPDATE goal SET player_id = ? WHERE player_id = ?', (str(selected_profile), str(profile.id)))
-            cur.execute('UPDATE segment_result SET player_id = ? WHERE player_id = ?', (str(selected_profile), str(profile.id)))
+            cur.execute('UPDATE segment_result SET player_id = ? WHERE player_id = ?',
+                        (str(selected_profile), str(profile.id)))
             g.db.commit()
             profile.id = selected_profile
         if not profile.email:
             profile.email = 'user@email.com'
         # clear f60 to remove free trial limit
         if profile.f60:
-           logger.warn('Profile contains bytes related to subscription/billing, removing...')
-           del profile.f60[:]
+            logger.warn('Profile contains bytes related to subscription/billing, removing...')
+            del profile.f60[:]
         return profile.SerializeToString(), 200
 
 
@@ -294,7 +300,9 @@ def api_profiles_activities(player_id):
     activities = activity_pb2.Activities()
     cur = g.db.cursor()
     # Select every column except 'fit' - despite being a blob python 3 treats it like a utf-8 string and tries to decode it
-    cur.execute("SELECT id, player_id, f3, name, f5, f6, start_date, end_date, distance, avg_heart_rate, max_heart_rate, avg_watts, max_watts, avg_cadence, max_cadence, avg_speed, max_speed, calories, total_elevation, strava_upload_id, strava_activity_id, f23, fit_filename, f29, date FROM activity WHERE player_id = ?", (str(player_id),))
+    cur.execute(
+        "SELECT id, player_id, f3, name, f5, f6, start_date, end_date, distance, avg_heart_rate, max_heart_rate, avg_watts, max_watts, avg_cadence, max_cadence, avg_speed, max_speed, calories, total_elevation, strava_upload_id, strava_activity_id, f23, fit_filename, f29, date FROM activity WHERE player_id = ?",
+        (str(player_id),))
     for row in cur.fetchall():
         activity = activities.activities.add()
         row_to_protobuf(row, activity, exclude_fields=['fit'])
@@ -380,7 +388,8 @@ def garmin_upload(player_id, activity):
         logger.warn("Failed to save fit file. Skipping Garmin upload attempt.")
         return
     try:
-        w = Workflow(['%s/last_activity.fit' % profile_dir], activity_name=activity.name, username=username, password=password)
+        w = Workflow(['%s/last_activity.fit' % profile_dir], activity_name=activity.name, username=username,
+                     password=password)
         w.run()
     except:
         logger.warn("Garmin upload failed. No internet?")
@@ -416,21 +425,22 @@ def api_profiles_followees(player_id):
 
 
 def get_week_range(dt):
-     d = datetime.datetime(dt.year,1,1)
-     if (d.weekday()<= 3):
-         d = d - timedelta(d.weekday())
-     else:
-         d = d + timedelta(7-d.weekday())
-     dlt = timedelta(days = (int(dt.strftime('%W'))-1)*7)
-     first = d + dlt
-     last = d + dlt + timedelta(days=6, hours=23, minutes=59, seconds=59)
-     return first, last
+    d = datetime.datetime(dt.year, 1, 1)
+    if (d.weekday() <= 3):
+        d = d - timedelta(d.weekday())
+    else:
+        d = d + timedelta(7 - d.weekday())
+    dlt = timedelta(days=(int(dt.strftime('%W')) - 1) * 7)
+    first = d + dlt
+    last = d + dlt + timedelta(days=6, hours=23, minutes=59, seconds=59)
+    return first, last
+
 
 def get_month_range(dt):
-     num_days = calendar.monthrange(dt.year, dt.month)[1]
-     first = datetime.datetime(dt.year, dt.month, 1)
-     last = datetime.datetime(dt.year, dt.month, num_days, 23, 59, 59)
-     return first, last
+    num_days = calendar.monthrange(dt.year, dt.month)[1]
+    first = datetime.datetime(dt.year, dt.month, 1)
+    last = datetime.datetime(dt.year, dt.month, num_days, 23, 59, 59)
+    return first, last
 
 
 def unix_time_millis(dt):
@@ -450,7 +460,7 @@ def fill_in_goal_progress(goal, player_id):
                        AND strftime('%s', start_date) >= strftime('%s', ?)
                        AND strftime('%s', start_date) <= strftime('%s', ?)
                        AND end_date IS NOT NULL""",
-                       (str(player_id), first_dt, last_dt))
+                    (str(player_id), first_dt, last_dt))
         distance = cur.fetchall()[0][0]
         if distance:
             goal.actual_distance = distance
@@ -466,11 +476,11 @@ def fill_in_goal_progress(goal, player_id):
                        AND strftime('%s', start_date) >= strftime('%s', ?)
                        AND strftime('%s', start_date) <= strftime('%s', ?)
                        AND end_date IS NOT NULL""",
-                       (str(player_id), first_dt, last_dt))
+                    (str(player_id), first_dt, last_dt))
         duration = cur.fetchall()[0][0]
         if duration:
-            goal.actual_duration = duration*1440  # convert from days to minutes
-            goal.actual_distance = duration*1440
+            goal.actual_duration = duration * 1440  # convert from days to minutes
+            goal.actual_distance = duration * 1440
         else:
             goal.actual_duration = 0.0
             goal.actual_distance = 0.0
@@ -529,19 +539,19 @@ def api_profiles_goals_id(player_id, goal_id):
 def relay_worlds_generic(world_id=None):
     # Android client also requests a JSON version
     if request.headers['Accept'] == 'application/json':
-        world = { 'currentDateTime': int(time.time()),
-                  'currentWorldTime': world_time(),
-                  'friendsInWorld': [],
-                  'mapId': 1,
-                  'name': 'Public Watopia',
-                  'playerCount': 0,
-                  'worldId': 1
-                }
+        world = {'currentDateTime': int(time.time()),
+                 'currentWorldTime': world_time(),
+                 'friendsInWorld': [],
+                 'mapId': 1,
+                 'name': 'Public Watopia',
+                 'playerCount': 0,
+                 'worldId': 1
+                 }
         if world_id:
             world['mapId'] = world_id
             return jsonify(world)
         else:
-            return jsonify([ world ])
+            return jsonify([world])
     else:  # protobuf request
         worlds = world_pb2.Worlds()
         world = worlds.worlds.add()
@@ -587,17 +597,17 @@ def relay_worlds_hash_seeds():
         seed = seeds.seeds.add()
         seed.seed1 = int(random.getrandbits(31))
         seed.seed2 = int(random.getrandbits(31))
-        seed.expiryDate = world_time()+(10800+x*1200)*1000
+        seed.expiryDate = world_time() + (10800 + x * 1200) * 1000
     return seeds.SerializeToString(), 200
 
 
 # XXX: attributes have not been thoroughly investigated
 @app.route('/relay/worlds/<int:world_id>/attributes', methods=['POST'])
 def relay_worlds_attributes(world_id):
-# NOTE: This was previously a protobuf message in Zwift client, but later changed.
-#    attribs = world_pb2.WorldAttributes()
-#    attribs.world_time = world_time()
-#    return attribs.SerializeToString(), 200
+    # NOTE: This was previously a protobuf message in Zwift client, but later changed.
+    #    attribs = world_pb2.WorldAttributes()
+    #    attribs.world_time = world_time()
+    #    return attribs.SerializeToString(), 200
     return relay_worlds_generic(world_id)
 
 
@@ -632,9 +642,9 @@ def handle_segment_results(request):
         return '{"id": %ld}' % result.id, 200
 
     # request.method == GET
-#    world_id = int(request.args.get('world_id'))
+    #    world_id = int(request.args.get('world_id'))
     player_id = request.args.get('player_id')
-#    full = request.args.get('full') == 'true'
+    #    full = request.args.get('full') == 'true'
     # Require segment_id
     if not request.args.get('segment_id'):
         return '', 422
@@ -664,7 +674,8 @@ def handle_segment_results(request):
     cur.execute("SELECT * FROM segment_result %s" % where_stmt, where_args)
     for row in cur.fetchall():
         result = results.segment_results.add()
-        row_to_protobuf(row, result, ['f3', 'f4', 'segment_id', 'event_subgroup_id', 'finish_time_str', 'f14', 'f17', 'f18'])
+        row_to_protobuf(row, result,
+                        ['f3', 'f4', 'segment_id', 'event_subgroup_id', 'finish_time_str', 'f14', 'f17', 'f18'])
 
     return results.SerializeToString(), 200
 
@@ -774,7 +785,8 @@ def init_database():
         copyfile(DATABASE_PATH, "%s.v%d.%d.bak" % (DATABASE_PATH, version, int(time.time())))
     except:
         try:  # Fall back to a temporary dir
-            copyfile(DATABASE_PATH, "%s/zwift-offline.db.v%s.%d.bak" % (tempfile.gettempdir(), version, int(time.time())))
+            copyfile(DATABASE_PATH,
+                     "%s/zwift-offline.db.v%s.%d.bak" % (tempfile.gettempdir(), version, int(time.time())))
         except:
             logging.warn("Failed to create a zoffline database backup prior to upgrading it.")
 
@@ -817,7 +829,8 @@ def auth_rb():
 @app.route('/auth/realms/zwift/protocol/openid-connect/auth', methods=['GET'])
 @app.route('/auth/realms/zwift/login-actions/request/login', methods=['GET', 'POST'])
 @app.route('/auth/realms/zwift/protocol/openid-connect/registrations', methods=['GET'])
-@app.route('/auth/realms/zwift/login-actions/startriding', methods=['GET'])  # Unused as it's a direct redirect now from auth/login
+@app.route('/auth/realms/zwift/login-actions/startriding',
+           methods=['GET'])  # Unused as it's a direct redirect now from auth/login
 @app.route('/auth/realms/zwift/tokens/login', methods=['GET'])  # Called by Mac, but not Windows
 @app.route('/auth/realms/zwift/tokens/registrations', methods=['GET'])  # Called by Mac, but not Windows
 @app.route('/ride', methods=['GET'])
@@ -825,7 +838,7 @@ def launch_zwift():
     from const import ZSELFT_VERSION
     # Zwift client has switched to calling https://launcher.zwift.com/launcher/ride
     if request.path != "/ride" and not os.path.exists(AUTOLAUNCH_FILE):
-        return render_template("embed-noauto.html", profiles=profiles,zselft_version=ZSELFT_VERSION)
+        return render_template("embed-noauto.html", profiles=profiles, zselft_version=ZSELFT_VERSION)
     else:
         return redirect("http://zwift/?code=zwift_refresh_token%s" % REFRESH_TOKEN, 302)
 
@@ -846,7 +859,7 @@ def auth_realms_zwift_protocol_openid_connect_token():
     return FAKE_JWT, 200
 
 
-@app.route("/start-zwift" , methods=['POST'])
+@app.route("/start-zwift", methods=['POST'])
 def start_zwift():
     global selected_profile
     selected_profile = int(request.form['id'])
@@ -862,9 +875,20 @@ def start_zwift():
 def auth_realms_zwift_tokens_access_codes():
     return FAKE_JWT, 200
 
+
 @app.route('/static/web/launcher/<filename>', methods=['GET'])
 def static_web_launcher(filename):
     return render_template(filename)
+
+
+@app.route('/keyboard/<key>')
+def keyboard_shortcuts(key):
+    try:
+        keyboard.press(ZwiftShortCutsEnum[key].value)
+    except Exception as e:
+        logger.exception(e)
+    finally:
+        return '', 2004
 
 
 def run_standalone():
@@ -874,6 +898,8 @@ def run_standalone():
             port=443,
             threaded=True,
             host='0.0.0.0')
+
+
 #            debug=True, use_reload=False)
 
 
