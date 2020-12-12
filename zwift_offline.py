@@ -895,7 +895,7 @@ def run_standalone():
     cli = sys.modules['flask.cli']
     cli.show_server_banner = lambda *x: None
     app.run(ssl_context=('%s/cert-zwift-com.pem' % SSL_DIR, '%s/key-zwift-com.pem' % SSL_DIR),
-            port=443,
+            port=444,
             threaded=True,
             host='0.0.0.0')
 
