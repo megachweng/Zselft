@@ -4,8 +4,9 @@ import requests
 import logging
 from threading import Thread
 
+from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import QUrl
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtGui import QDesktopServices
 from scripts.get_profile import query_player_profile, login, logout
 from scripts import strava_oauth_server
@@ -21,6 +22,8 @@ class AddAccountDialog(QDialog, Ui_account):
     def __init__(self, parent=None):
         super(AddAccountDialog, self).__init__(parent=parent)
         self.setupUi(self)
+        self.garminPasswordEdit.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.zwiftPasswordEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.getZwiftProfileBtn.clicked.connect(self.get_zwift_profile)
         self.authStravaBtn.clicked.connect(self.auth_strava)
         self.account_dict = dict()
@@ -59,7 +62,10 @@ class AddAccountDialog(QDialog, Ui_account):
     def auth_strava(self):
 
         if self.account_dict.get('uid', None) is None:
-            logger.warning('必须先获取Zwift数据！')
+            notify = QMessageBox()
+            notify.setText('请先获取Zwift数据！')
+            notify.exec_()
+            logger.warning('请先获取Zwift数据！')
             return
         strava_oauth_server.bridge.token_got.connect(self.format_strava_token)
         t = Thread(target=strava_oauth_server.app.run, args=('0.0.0.0', 6734))

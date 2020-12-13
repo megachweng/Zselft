@@ -51,6 +51,14 @@ class Window(QWidget, Ui_Window):
         self.zwift_path = pathlib.Path('~').expanduser()
         self.show()
         self.stopServiceBtn.setEnabled(False)
+        if not is_admin():
+            box = QMessageBox()
+            box.setText("请用管理员身份运行！")
+            box.setStandardButtons(QMessageBox.Yes)
+            box.exec()
+            QCoreApplication.instance().quit()
+            sys.exit()
+
         self.start_fake_server()
         self.list_profiles()
         self.load_config()
@@ -98,13 +106,16 @@ class Window(QWidget, Ui_Window):
                     user_info = zwift_user_profile_interpreter(fd.read())
 
                 # download avatar
-                with open(d / 'avatar', 'rb') as fp:
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(fp.read())
-                    icon = QIcon(pixmap)
-                    item = QListWidgetItem(icon, f'{user_info["first_name"]} {user_info["last_name"]}')
-                    item.setData(Qt.UserRole, str(user_info['uid']))
-                    self.AccountListWidget.addItem(item)
+                try:
+                    with open(d / 'avatar', 'rb') as fp:
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(fp.read())
+                        icon = QIcon(pixmap)
+                except FileNotFoundError:
+                    icon = QIcon()
+                item = QListWidgetItem(icon, f'{user_info["first_name"]} {user_info["last_name"]}')
+                item.setData(Qt.UserRole, str(user_info['uid']))
+                self.AccountListWidget.addItem(item)
 
     @pyqtSlot(bool)
     def on_addAccountBtn_clicked(self):

@@ -757,7 +757,7 @@ def list_profiles():
         selected_profile = profiles[0].id
     else:
         profile.id = 1000
-    profile.first_name = 'New profile'
+    profile.first_name = '创建新的单机用户'
     profiles.append(profile)
 
 
@@ -838,7 +838,8 @@ def launch_zwift():
     from const import ZSELFT_VERSION
     # Zwift client has switched to calling https://launcher.zwift.com/launcher/ride
     if request.path != "/ride" and not os.path.exists(AUTOLAUNCH_FILE):
-        return render_template("embed-noauto.html", profiles=profiles, zselft_version=ZSELFT_VERSION)
+        # return render_template("embed-noauto.html", profiles=profiles, zselft_version=ZSELFT_VERSION)
+        return render_template("new.html", profiles=profiles, zselft_version=ZSELFT_VERSION)
     else:
         return redirect("http://zwift/?code=zwift_refresh_token%s" % REFRESH_TOKEN, 302)
 
@@ -895,7 +896,7 @@ def run_standalone():
     cli = sys.modules['flask.cli']
     cli.show_server_banner = lambda *x: None
     app.run(ssl_context=('%s/cert-zwift-com.pem' % SSL_DIR, '%s/key-zwift-com.pem' % SSL_DIR),
-            port=444,
+            port=443,
             threaded=True,
             host='0.0.0.0')
 

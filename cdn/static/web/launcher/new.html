@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hello Bulma!</title>
+    <style>
+        button {
+            background-color: #fc6719; /* Green */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 12px;
+        }
+
+
+    </style>
+</head>
+<body>
+<form method="POST" action="/start-zwift">
+    <table border=0 cellpadding=5 style="table-layout: fixed">
+        <tr>
+            <td colspan="1"> <span style="margin-right: 10px">Zwift自闭欢乐版({{ zselft_version }}) </span> <label>选择用户:
+                <select name="id">{% for profile in profiles %}
+                    <option value="{{ profile.id }}">{{ profile.first_name + ' ' + profile.last_name }}</option>{% endfor %}
+                </select>
+            </label></td>
+
+            <td>
+                <label>地图：
+                    <select id="map" name="map" onchange="changeWorld()">
+                        <option selected value="CALENDAR">随机</option>
+                        <option value="FRANCE">France</option>
+                        <option value="INNSBRUCK">Innsbruck</option>
+                        <option value="LONDON">London</option>
+                        <option value="NEWYORK">New York</option>
+                        <option value="PARIS">Paris</option>
+                        <option value="RICHMOND">Richmond</option>
+                        <option value="WATOPIA">Watopia</option>
+                        <option value="YORKSHIRE">Yorkshire</option>
+                    </select>
+                </label>
+            </td>
+
+            <td colspan="1">
+{#                <label>虚拟伙伴:<input  type="checkbox" name="ghosts" {% if ghosts %} checked {% endif %}></label>#}
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="3" style="
+            overflow: hidden;
+            position:relative;
+             height: 240px;
+    ">
+                <img id="world" src="http://127.0.0.1/gameassets/img/sample.jpg" style="
+         position:absolute;
+
+        top:0;
+    ">
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="1">
+                <h4>无需联网、无需充值、一键满级、汗水无限，给你无尽的快乐</h4>
+                <h4>使用遇到问题可以在<a href="https://github.com/megachweng/Zselft" target="_blank">这里</a>创建 Issue 反馈</h4>
+                <h4>如果这个软件有帮到你，可以考虑请我杯星巴克</h4>
+            </td>
+            <td colspan="1">
+                <img src="http://127.0.0.1/gameassets/img/buy_me_a_coffee.jpg" height=160 alt="">
+            </td>
+            <td rowspan="2">
+                <button type="submit">开练</button>
+            </td>
+        </tr>
+    </table>
+</form>
+<script>
+    world_list = [
+        "http://127.0.0.1/gameassets/img/sample.jpg",
+        "http://127.0.0.1/gameassets/img/france.jpg",
+        "http://127.0.0.1/gameassets/img/innsbruck.jpg",
+        "http://127.0.0.1/gameassets/img/london.jpg",
+        "http://127.0.0.1/gameassets/img/nyc.jpg",
+        "http://127.0.0.1/gameassets/img/paris.jpg",
+        "http://127.0.0.1/gameassets/img/richmond.jpg",
+        "http://127.0.0.1/gameassets/img/watopia.jpg",
+        "http://127.0.0.1/gameassets/img/yorkshire.jpg"
+    ]
+
+    function changeWorld() {
+        document.getElementById('world').src = world_list[document.getElementById('map').selectedIndex];
+    }
+</script>
+
+</body>
+</html>

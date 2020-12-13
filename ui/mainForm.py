@@ -61,7 +61,7 @@ class Ui_Window(object):
         _translate = QtCore.QCoreApplication.translate
         Window.setWindowTitle(_translate("Window", "Window"))
         self.startServiceBtn.setText(_translate("Window", "自闭"))
-        self.stopServiceBtn.setText(_translate("Window", "开朗"))
+        self.stopServiceBtn.setText(_translate("Window", "复原"))
         self.deleteAccountBtn.setText(_translate("Window", "-"))
         self.addAccountBtn.setText(_translate("Window", "+"))
         __sortingEnabled = self.AccountListWidget.isSortingEnabled()

@@ -2,7 +2,7 @@ import ctypes
 import pathlib
 import logging
 from subprocess import Popen, PIPE
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from protobuf import profile_pb2
 from const import BUNDLE_DIR
 
@@ -68,6 +68,9 @@ def zwift_user_profile_interpreter(profile_bytes):
 
 def choose_zwift_path(path: pathlib.Path):
     if not (path / 'data/cacert.pem').is_file():
+        notify = QMessageBox()
+        notify.setText('请选择Zwift的安装目录！')
+        notify.exec_()
         dialog = QFileDialog()
         choose_path = pathlib.Path(dialog.getExistingDirectory(dialog, '选择Zwift的安装目录！'))
         return choose_zwift_path(choose_path)

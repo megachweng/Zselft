@@ -7,17 +7,12 @@ import sys
 import threading
 import time
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 
-if sys.version_info[0] > 2:
-    import socketserver
-    from http.server import SimpleHTTPRequestHandler
-    from urllib.parse import unquote
-else:
-    import SocketServer as socketserver
-    from SimpleHTTPServer import SimpleHTTPRequestHandler
-    from urllib2 import unquote
 
+import socketserver
+from http.server import SimpleHTTPRequestHandler
+from urllib.parse import unquote
 import zwift_offline
 import protobuf.udp_node_msgs_pb2 as udp_node_msgs_pb2
 import protobuf.tcp_node_msgs_pb2 as tcp_node_msgs_pb2
@@ -49,6 +44,8 @@ start_road = 0
 start_rt = 0
 update_freq = 3
 timeout = 10
+
+tcpthreadevent = threading.Event()
 
 
 def roadID(state):
@@ -103,7 +100,7 @@ def loadGhosts(player_id, state):
         with open(sl_file, 'r') as fd:
             sl = [tuple(line) for line in csv.reader(fd)]
             rt = [t for t in sl if t[0] == str(course(state)) and t[1] == str(roadID(state)) and (
-                        t[2] == str(isForward(state)) or not t[2])]
+                    t[2] == str(isForward(state)) or not t[2])]
             if rt:
                 start_road = int(rt[0][3])
                 start_rt = int(rt[0][4])
@@ -159,7 +156,7 @@ class CDNHandler(SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'text/xml')
             self.end_headers()
             output = '<MapSchedule><appointments><appointment map="%s" start="%s"/></appointments><VERSION>1</VERSION></MapSchedule>' % (
-            MAP_OVERRIDE, datetime.now().strftime("%Y-%m-%dT00:01-04"))
+                MAP_OVERRIDE, (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%dT00:01-04"))
             self.wfile.write(output.encode())
             MAP_OVERRIDE = None
             return
@@ -328,7 +325,6 @@ def start():
     zoffline_thread.daemon = True
     zoffline_thread.start()
 
-    tcpthreadevent = threading.Event()
     tcpserver = socketserver.ThreadingTCPServer(('', 3023), TCPHandler)
     tcpserver_thread = threading.Thread(target=tcpserver.serve_forever)
     tcpserver_thread.daemon = True
