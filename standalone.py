@@ -45,8 +45,6 @@ start_rt = 0
 update_freq = 3
 timeout = 10
 
-tcpthreadevent = threading.Event()
-
 
 def roadID(state):
     return (state.f20 & 0xff00) >> 8
@@ -122,13 +120,16 @@ def loadGhosts(player_id, state):
 
 
 def sigint_handler(num, frame):
-    httpd.shutdown()
-    httpd.server_close()
+    if httpd:
+        httpd.shutdown()
+        httpd.server_close()
     tcpthreadevent.set()
-    tcpserver.shutdown()
-    tcpserver.server_close()
-    udpserver.shutdown()
-    udpserver.server_close()
+    if tcpserver:
+        tcpserver.shutdown()
+        tcpserver.server_close()
+    if udpserver:
+        udpserver.shutdown()
+        udpserver.server_close()
     sys.exit(0)
 
 
@@ -317,23 +318,23 @@ class UDPHandler(socketserver.BaseRequestHandler):
         message.msgnum = 1
         socket.sendto(message.SerializeToString(), self.client_address)
 
+tcpthreadevent = threading.Event()
+socketserver.ThreadingTCPServer.allow_reuse_address = True
+httpd = socketserver.ThreadingTCPServer(('', 80), CDNHandler)
+zoffline_thread = threading.Thread(target=httpd.serve_forever)
+zoffline_thread.daemon = True
+zoffline_thread.start()
+
+tcpserver = socketserver.ThreadingTCPServer(('', 3023), TCPHandler)
+tcpserver_thread = threading.Thread(target=tcpserver.serve_forever)
+tcpserver_thread.daemon = True
+tcpserver_thread.start()
+
+socketserver.ThreadingUDPServer.allow_reuse_address = True
+udpserver = socketserver.ThreadingUDPServer(('', 3022), UDPHandler)
+udpserver_thread = threading.Thread(target=udpserver.serve_forever)
+udpserver_thread.daemon = True
+udpserver_thread.start()
 
 def start():
-    socketserver.ThreadingTCPServer.allow_reuse_address = True
-    httpd = socketserver.ThreadingTCPServer(('', 80), CDNHandler)
-    zoffline_thread = threading.Thread(target=httpd.serve_forever)
-    zoffline_thread.daemon = True
-    zoffline_thread.start()
-
-    tcpserver = socketserver.ThreadingTCPServer(('', 3023), TCPHandler)
-    tcpserver_thread = threading.Thread(target=tcpserver.serve_forever)
-    tcpserver_thread.daemon = True
-    tcpserver_thread.start()
-
-    socketserver.ThreadingUDPServer.allow_reuse_address = True
-    udpserver = socketserver.ThreadingUDPServer(('', 3022), UDPHandler)
-    udpserver_thread = threading.Thread(target=udpserver.serve_forever)
-    udpserver_thread.daemon = True
-    udpserver_thread.start()
-
     zwift_offline.run_standalone()

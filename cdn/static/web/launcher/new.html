@@ -12,8 +12,11 @@
             text-align: center;
             text-decoration: none;
             display: inline-block;
-            font-size: 16px;
+            font-size: 40px;
             border-radius: 12px;
+        }
+        img {
+            width: 100%;
         }
 
 
@@ -21,15 +24,15 @@
 </head>
 <body>
 <form method="POST" action="/start-zwift">
-    <table border=0 cellpadding=5 style="table-layout: fixed">
+    <table border=0 cellpadding=5 style="table-layout: fixed;">
         <tr>
-            <td colspan="1"> <span style="margin-right: 10px">Zwift自闭欢乐版({{ zselft_version }}) </span> <label>选择用户:
+            <td colspan="0"> <span style="margin-right: 10px">Zwift自闭欢乐版({{ zselft_version }}) </span> <label>选择用户:
                 <select name="id">{% for profile in profiles %}
                     <option value="{{ profile.id }}">{{ profile.first_name + ' ' + profile.last_name }}</option>{% endfor %}
                 </select>
             </label></td>
 
-            <td>
+            <td colspan="2">
                 <label>地图：
                     <select id="map" name="map" onchange="changeWorld()">
                         <option selected value="CALENDAR">随机</option>
@@ -44,23 +47,13 @@
                     </select>
                 </label>
             </td>
-
-            <td colspan="1">
-{#                <label>虚拟伙伴:<input  type="checkbox" name="ghosts" {% if ghosts %} checked {% endif %}></label>#}
-            </td>
         </tr>
 
         <tr>
-            <td colspan="3" style="
-            overflow: hidden;
-            position:relative;
-             height: 240px;
-    ">
-                <img id="world" src="http://127.0.0.1/gameassets/img/sample.jpg" style="
-         position:absolute;
-
-        top:0;
-    ">
+            <td colspan="3" style="height: 150px;">
+                <div style="height: 150px; object-fit: cover;">
+                    <img id="world" src="http://127.0.0.1/gameassets/img/sample.jpg">
+                </div>
             </td>
         </tr>
 
@@ -70,10 +63,10 @@
                 <h4>使用遇到问题可以在<a href="https://github.com/megachweng/Zselft" target="_blank">这里</a>创建 Issue 反馈</h4>
                 <h4>如果这个软件有帮到你，可以考虑请我杯星巴克</h4>
             </td>
-            <td colspan="1">
-                <img src="http://127.0.0.1/gameassets/img/buy_me_a_coffee.jpg" height=160 alt="">
+            <td colspan="1" style="width: 250px; text-align: center;">
+                <img src="http://127.0.0.1/gameassets/img/buy_me_a_coffee.jpg" height=200 alt="">
             </td>
-            <td rowspan="2">
+            <td rowspan="1" style="text-align: right;">
                 <button type="submit">开练</button>
             </td>
         </tr>
